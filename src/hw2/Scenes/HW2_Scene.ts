@@ -579,7 +579,23 @@ export default class Homework1_Scene extends Scene {
 	 */
 	handleScreenWrap(node: GameNode, viewportCenter: Vec2, paddedViewportSize: Vec2): void {
 		// Your code goes here:
+		var current_position = node.position;
+		var half_x = paddedViewportSize.x / 2.0;
+		var half_y = paddedViewportSize.y / 2.0;
+		var left_edge = viewportCenter.x - half_x;
+		var right_edge = viewportCenter.x + half_x;
+		var top_edge = viewportCenter.y - half_y;
+		var bottom_edge = viewportCenter.y + half_y;
 
+		if(current_position.x < (left_edge - 1)){
+			node.positionX = right_edge;
+		}else if(current_position.x > (right_edge + 1)){
+			node.positionX = left_edge;
+		}else if(current_position.y < (top_edge - 1)){
+			node.positionY = bottom_edge;
+		}else if(current_position.y > (bottom_edge + 1)){
+			node.positionY = top_edge;
+		}
 	}
 
 	// HOMEWORK 2 - TODO
