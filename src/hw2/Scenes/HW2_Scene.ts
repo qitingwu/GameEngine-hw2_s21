@@ -83,7 +83,7 @@ export default class Homework1_Scene extends Scene {
 		this.load.image("space", "hw2_assets/sprites/space.png");
 
 		/* ##### YOUR CODE GOES BELOW THIS LINE ##### */
-		this.load.spritesheet("player", "hw2_assets/qiting_wu_spaceship/qiting_wu_spaceship.json");
+		this.load.spritesheet("spaceship", "hw2_assets/qiting_wu_spaceship/qiting_wu_spaceship.json");
 	}
 
 	/*
@@ -291,6 +291,7 @@ export default class Homework1_Scene extends Scene {
 			ship.visible = true;
 			ship.position = position;
 			ship.setAIActive(true, {});
+			ship.animation.play(Homework2Animations.SHIP_BOOST);
 
 			this.fleetSize += 1;
 			this.mineralAmount -= 2;
@@ -445,12 +446,13 @@ export default class Homework1_Scene extends Scene {
 				for(let ship of this.fleet){
 					// If the ship is spawned, isn't already dying, and overlaps the asteroid
 					if(ship.visible &&
-						!ship.animation.isPlaying("explode") && 
+						!ship.animation.isPlaying(Homework2Animations.SHIP_DIE) && 
 						Homework1_Scene.checkAABBtoCircleCollision(<AABB>ship.collisionShape, <Circle>asteroid.collisionShape)
 					){
 						// Kill asteroid
 						asteroid.visible = false;
 						this.numAsteroids -= 1;
+						this.numAsteroidsDestroyed += 1;
 
 						// Update the gui
 						this.asteroidsLabel.text = `Asteroids: ${this.numAsteroids}`;
@@ -475,7 +477,20 @@ export default class Homework1_Scene extends Scene {
 				// If the asteroid is spawned in and it overlaps the player
 				if(asteroid.visible && Homework1_Scene.checkAABBtoCircleCollision(<AABB>this.player.collisionShape, <Circle>asteroid.collisionShape)){
 					// Put your code here:
+					// Kill asteroid
+					this.playerinvincible = true;
+					asteroid.visible = false;
+					this.numAsteroids -= 1;
+					this.numAsteroidsDestroyed += 1;
 
+					// Update the gui
+					this.asteroidsLabel.text = `Asteroids: ${this.numAsteroids}`;
+
+					// Send out an event to damage the ship
+					//this.player.animation.play(Homework2Animations.PLAYER_DAMAGE);
+					this.playerShield -= 1;
+					this.emitter.fireEvent(Homework2Event.PLAYER_DAMAGE, {shield: this.playerShield});
+					this.shieldsLabel.text = `Shield: ${this.playerShield}`;
 				}
 			}
 		}
@@ -625,7 +640,70 @@ export default class Homework1_Scene extends Scene {
 	 */
 	static checkAABBtoCircleCollision(aabb: AABB, circle: Circle): boolean {
 		// Your code goes here:
-		return false;
+		//check if edges are in the circle.
+		//treat the circle as a sqaure in this case
+		var circlebox=circle.getBoundingRect();
+		if(!aabb.overlaps(circlebox)){
+			return false;}
+
+		//check if the four corners are less than radius distance away from the center of circle.
+		//while doing this, find the closest corner to the center of the circle
+		var closestcorner = "top left";
+		var closestdistance = this.findDistance(aabb.topLeft,circle.center);
+		if(this.findDistance(aabb.topRight,circle.center)<closestdistance){
+			closestcorner = "top right";
+			closestdistance = this.findDistance(aabb.topRight,circle.center);
+		}
+		if(this.findDistance(aabb.bottomLeft,circle.center)<closestdistance){
+			closestcorner = "bottom left";
+			closestdistance = this.findDistance(aabb.bottomLeft,circle.center);
+		}
+		if(this.findDistance(aabb.bottomRight,circle.center)<closestdistance){
+			closestcorner = "bottom right";
+			closestdistance = this.findDistance(aabb.bottomRight,circle.center);
+		}
+		if(closestdistance<circle.radius){
+			return true;
+		}
+
+		//if both square frames collide, and the closest corner's direction is in the opposite 
+		//direction as the center of circle, return true
+		//For example, the closest corner to the circle is TopLeft and the center of the circle is to the right or bottom
+		//of the topleft.
+		//If the center of the circle is to the topleft of topleft then return false.
+		if(closestcorner == "top left"){
+			var xdirection = circle.center.x - aabb.topLeft.x;
+			var ydirection = circle.center.y - aabb.topLeft.y;
+			if(xdirection < 0 && ydirection < 0){
+				return false;
+			}
+		}
+		if(closestcorner == "top right"){
+			var xdirection = circle.center.x - aabb.topRight.x;
+			var ydirection = circle.center.y - aabb.topRight.y;
+			if(xdirection > 0 && ydirection < 0){
+				return false;
+			}
+		}
+		if(closestcorner == "bottom left"){
+			var xdirection = circle.center.x - aabb.bottomLeft.x;
+			var ydirection = circle.center.y - aabb.bottomLeft.y;
+			if(xdirection < 0 && ydirection > 0){
+				return false;
+			}
+		}
+		if(closestcorner == "bottom right"){
+			var xdirection = circle.center.x - aabb.topLeft.x;
+			var ydirection = circle.center.y - aabb.topLeft.y;
+			if(xdirection > 0 && ydirection > 0){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	static findDistance(p1:Vec2, p2:Vec2): number{
+		return Math.sqrt(Math.pow((p1.x - p2.x),2)+Math.pow((p1.y - p2.y),2));
 	}
 
 }
